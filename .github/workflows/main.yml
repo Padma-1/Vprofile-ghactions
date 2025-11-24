@@ -1,4 +1,5 @@
 name: Build Job #name of the workflow
+
 on: 
   push:
     branches: 
@@ -13,7 +14,7 @@ on:
   # schedule:
   #   - cron: "10 14 * * 1-5" #run at 2:10PM from monday to friday
 
-# to make this workflow file have permission read-only from this repo
+# to make this workflow file have permission read-only from this repo 
 permissions:
   contents: read
 
@@ -49,7 +50,13 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run tests on main branch
+        if: github.ref == '/refs/heads/main' # run the below run command only if the branch is main. github.ref is a github context variable holds the value of branch using which workflow is running
         run: mvn test
 
       - name: Checkstyle
+        if: github.ref == '/refs/heads/main'
         run: mvn checkstyle:checkstyle
+
+      - name: Run tests on other branches
+        if: github.ref != '/refs/heads/main'
+        run: echo "Skipping unit tests and code analysis"
