@@ -13,6 +13,10 @@ on:
   # schedule:
   #   - cron: "10 14 * * 1-5" #run at 2:10PM from monday to friday
 
+# to make this workflow file have permission read-only from this repo
+permissions:
+  contents: read
+
 jobs:
   Build:
     runs-on: ubuntu-latest
@@ -23,7 +27,18 @@ jobs:
           fetch-depth: 0 #we can pass input parameters to actions using with, we can refer https://github.com/marketplace/actions/checkout 
 
       - name: Maven Build
-        run: mvn install
+        run: mvn install #it creates an artifact, generally everything will get deleted once workflow completes. so saving using below actions
+
+      - name: Upload Build Artifact (WAR)
+        uses: actions/upload-artifact@v4
+        with:
+          name: vprofile-app #name of the artifact we want, will create a zip of our artifact
+          path: target/*.war
+
+       # Using conditions
+      - name: Notify if Build Fails
+        if : failure() #predefined function, checks if previous steps failed. We have other functions such as success(), always() etc
+        run: echo "Build Job failed! Please check logs."
 
 
   Testing:
