@@ -48,6 +48,8 @@ jobs:
     steps:
       - name: Code checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0        
 
       - name: Run tests on main branch
         if: github.ref == '/refs/heads/main' # run the below run command only if the branch is main. github.ref is a github context variable holds the value of branch using which workflow is running
@@ -60,3 +62,28 @@ jobs:
       - name: Run tests on other branches
         if: github.ref != '/refs/heads/main'
         run: echo "Skipping unit tests and code analysis"
+
+  Security_Scan:
+    runs-on: ubuntu-latest
+    needs: Build  #so once build job completes, Testing and securit_scan job both runs parallelly
+    steps:
+      - name: Code checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   
+
+      - name: Run Trivy filesystem scan # Security scanning
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs # other scan types such as image, fs, repo etc
+          scan-ref: . # means scan current directory
+          format: json # format of output i want
+          exit-code: 0 # exit code 0 means continue with next step even if vulnerabilities found
+          vuln-type: os,library
+          output: trivy-results.json
+
+      - name: UploadTrivy scan results as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-scan-results #name of the artifact we want
+          path: trivy-results.json
