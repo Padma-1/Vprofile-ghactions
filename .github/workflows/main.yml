@@ -116,11 +116,11 @@ jobs:
         id: login-ecr # as I want to have the output of this step in later steps
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build, tag an push image to Amazon ECR
+      - name: Build, tag, and push image to Amazon ECR
         id: build-image
-        env: 
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }} # we are referring the output from previous step here
-          IMAGE_TAG: $ {{ github.sha }} # github.sha gets the latest commit ID
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
         run: |
           docker build -f Docker-files/app/multistage/Dockerfile -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG      
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
