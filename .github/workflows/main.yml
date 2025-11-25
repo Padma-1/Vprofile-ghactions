@@ -14,6 +14,9 @@ on:
   # schedule:
   #   - cron: "10 14 * * 1-5" #run at 2:10PM from monday to friday
 
+env:
+  ECR_REPOSITORY: 'vprofile-appimage' # my created ECR repo name in Amazon
+
 # to make this workflow file have permission read-only from this repo 
 permissions:
   contents: read
@@ -87,3 +90,37 @@ jobs:
         with:
           name: trivy-scan-results #name of the artifact we want
           path: trivy-results.json
+
+  # Build the image and publish to Amazon ECR
+  BUILD_AND_PUBLISH:
+    name: BUILD_AND_PUBLISH
+    runs-on: ubuntu-latest
+    environment: production # we created this env in settings, which allows to access respetive env specific secrets and vars, also can add aprrovals there.
+    needs: [Build, Testing, Security_Scan] # I want this job to run after all previous job runs completion
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Code checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  
+
+        # To connect to AWS
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr # as I want to have the output of this step in later steps
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag an push image to Amazon ECR
+        id: build-image
+        env: 
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }} # we are referring the output from previous step here
+          IMAGE_TAG: $ {{ github.sha }} # github.sha gets the latest commit ID
+        run: |
+          docker build -f Docker-files/app/multistage/Dockerfile -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG      
