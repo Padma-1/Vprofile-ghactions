@@ -1,9 +1,9 @@
 name: Vprofile CI/CD Workflow #name of the workflow
 
 on: 
-  push:
-    branches: 
-      - main
+  # push:
+  #   branches: 
+  #     - main
       
   pull_request:
     branches:
